@@ -1,0 +1,35 @@
+name: Actualizar precios diario
+
+on:
+  schedule:
+    # Corre todos los días a las 9:00 AM hora de México (15:00 UTC).
+    # Si quieres otra hora, cambia el número antes de " * * *"
+    # (siempre en horario UTC).
+    - cron: "0 15 * * *"
+  workflow_dispatch: # esto permite correrlo manualmente con un botón, para probar
+
+jobs:
+  actualizar-precios:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar librerías
+        run: pip install requests beautifulsoup4
+
+      - name: Correr el scraper
+        run: python scraper.py
+
+      - name: Guardar los cambios en el repositorio
+        run: |
+          git config --global user.name "Bot de precios"
+          git config --global user.email "bot@monitor-precios.local"
+          git add price_history.json
+          git commit -m "Actualizar historial de precios" || echo "Sin cambios que guardar"
+          git push
