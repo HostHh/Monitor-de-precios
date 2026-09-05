@@ -23,8 +23,8 @@ def obtener_libros_de_pagina(numero_pagina):
     libros = []
     for articulo in articulos:
         titulo = articulo.find("h3").find("a")["title"]
-      precio_texto = articulo.find("p", class_="price_color").text
-precio = float(''.join(c for c in precio_texto if c.isdigit() or c == '.'))
+        precio_texto = articulo.find("p", class_="price_color").text
+        precio = float(''.join(c for c in precio_texto if c.isdigit() or c == '.'))
         libros.append({"titulo": titulo, "precio": precio, "fecha": ahora})
     return libros
 
