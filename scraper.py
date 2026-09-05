@@ -1,12 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
-from datetime import datetime
+import json
 import os
+from datetime import datetime
 
 BASE_URL = "https://books.toscrape.com/catalogue/page-{}.html"
 TOTAL_PAGINAS = 3
-ARCHIVO_HISTORIAL = "price_history.csv"
+ARCHIVO_HISTORIAL = "price_history.json"
 
 def obtener_libros_de_pagina(numero_pagina):
     url = BASE_URL.format(numero_pagina)
@@ -23,35 +23,30 @@ def obtener_libros_de_pagina(numero_pagina):
     libros = []
     for articulo in articulos:
         titulo = articulo.find("h3").find("a")["title"]
-        precio = articulo.find("p", class_="price_color").text.replace("£", "")
-        libros.append({
-            "titulo": titulo,
-            "precio": precio,
-            "fecha": ahora
-        })
+        precio = float(articulo.find("p", class_="price_color").text.replace("£", ""))
+        libros.append({"titulo": titulo, "precio": precio, "fecha": ahora})
     return libros
 
+def cargar_historial_existente():
+    if os.path.isfile(ARCHIVO_HISTORIAL):
+        with open(ARCHIVO_HISTORIAL, "r", encoding="utf-8") as archivo:
+            return json.load(archivo)
+    return []
+
 def main():
-    todos_los_libros = []
+    historial = cargar_historial_existente()
+
+    nuevos_registros = []
     for pagina in range(1, TOTAL_PAGINAS + 1):
         print(f"Extrayendo página {pagina}/{TOTAL_PAGINAS}...")
-        todos_los_libros.extend(obtener_libros_de_pagina(pagina))
+        nuevos_registros.extend(obtener_libros_de_pagina(pagina))
 
-    # La diferencia clave: si el archivo ya existe, AGREGAMOS filas
-    # nuevas al final en vez de borrar lo que ya había. Así, cada vez
-    # que corres el script, se suma un nuevo "snapshot" con fecha,
-    # y con el tiempo se arma un historial real de precios.
-    archivo_existe = os.path.isfile(ARCHIVO_HISTORIAL)
+    historial.extend(nuevos_registros)
 
-    with open(ARCHIVO_HISTORIAL, "a", newline="", encoding="utf-8") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=["titulo", "precio", "fecha"])
-        if not archivo_existe:
-            escritor.writeheader()  # solo escribe encabezados la primera vez
-        escritor.writerows(todos_los_libros)
+    with open(ARCHIVO_HISTORIAL, "w", encoding="utf-8") as archivo:
+        json.dump(historial, archivo, ensure_ascii=False, indent=2)
 
-    print(f"\nListo. Se agregaron {len(todos_los_libros)} registros a {ARCHIVO_HISTORIAL}")
-    print("Corre este script varios días seguidos para construir historial real.")
-    print("Luego sube ese archivo .csv al dashboard para ver las gráficas.")
+    print(f"\nListo. El historial ahora tiene {len(historial)} registros en total.")
 
 if __name__ == "__main__":
     main()
